@@ -20,16 +20,21 @@ s.bind(('', port))
 s.setblocking(False)
 
 BROADCAST_IP = []
-black_list = ['127', '169']
+black_list = ['127', '169', '172']
 mask = [0, 0, 0, 255]
 for name, info in psutil.net_if_addrs().items():
+    isup = False
+    for tName, tInfo in psutil.net_if_stats().items():
+        if name == tName:
+            isup = tInfo.isup
+            break
     for addr in info:
         if socket.AddressFamily.AF_INET != addr.family:
             continue
         ipv4 = addr.address.split('.')
         for i in range(len(ipv4)):
             ipv4[i] = str(int(ipv4[i]) | mask[i])
-        if ipv4[0] in black_list:
+        if ipv4[0] in black_list or not isup:
             continue
         BROADCAST_IP.append('.'.join(ipv4))
 
@@ -47,6 +52,6 @@ while True:
                      msg.decode("utf-8").replace("[MOTD]", "").replace("[/MOTD]", "\", ")),
               "Address: \"" + address + ":" + str(serverPort) + '"]')
         for ip in BROADCAST_IP:
-            print("Broad To: " + ip)
+            print("Broadcasting To: " + ip)
             sock.sendto(msg, (ip, port))
-    time.sleep(1.5)
+        time.sleep(1.5)
